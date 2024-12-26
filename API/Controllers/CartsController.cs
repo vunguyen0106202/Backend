@@ -10,23 +10,31 @@ using API.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using API.Dtos;
+using API.Helper.Payments;
+using API.Services;
+using API.Helpers;
 namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class CartsController : Controller
     {
+        private readonly IVnPayService _vnPayService;
+
         private readonly DPContext _context;
-        public CartsController(DPContext context)
+        private readonly IHoaDonsService _hoaDonsService;
+        public CartsController(DPContext context, IVnPayService vnPayService, IHoaDonsService hoaDonsService)
         {
             _context = context;
+            _vnPayService = vnPayService;
+            _hoaDonsService = hoaDonsService;
         }
         // GET: api/Carts
         [HttpPost("getCart/{id}")]
         public async Task<ActionResult<IEnumerable<CartViewModel>>> GetCarts(string id)
         {
             var getiduser = id;
-            var resuft =await _context.Carts.Where(s => s.UserID == getiduser)
+            var resuft = await _context.Carts.Where(s => s.UserID == getiduser)
                 .Select(d => new CartViewModel
                 {
                     IdSanPhamBienThe = d.Id_SanPhamBienThe,
@@ -66,7 +74,7 @@ namespace API.Controllers
         {
             var variableQtys = await _context.Carts.Select(s => s.SoLuong).ToListAsync();
             var totalQty = 0;
-            foreach(var item in variableQtys)
+            foreach (var item in variableQtys)
             {
                 totalQty += item;
             }
@@ -142,8 +150,8 @@ namespace API.Controllers
             }
             return NoContent();
         }
-        [HttpPost("delete")]     
-        public async Task<IActionResult> Delete([FromBody]DeleteCart delete)
+        [HttpPost("delete")]
+        public async Task<IActionResult> Delete([FromBody] DeleteCart delete)
         {
             var card = _context.Carts.Where(d => d.Id_SanPhamBienThe == delete.Id_sanpham && d.UserID == delete.User_ID).SingleOrDefault();
             _context.Carts.Remove(card);
@@ -177,10 +185,62 @@ namespace API.Controllers
             }
             await _context.SaveChangesAsync();
             return CreatedAtAction("GetCart", new { id = cart.CartID }, cart);
-        }  
+        }
         private bool CartExists(int id)
         {
             return _context.Carts.Any(e => e.CartID == id);
         }
+
+        // thanh toán vnpay
+
+        [HttpGet("PaymentCallbackVnpay")]
+        public async Task<IActionResult> PaymentCallbackVnpay()
+        {
+            var response = _vnPayService.PaymentExecute(Request.Query);
+
+            // can check them validatorsignatrue de bao mat hon
+
+            string transactionStatus = Request.Query["vnp_TransactionStatus"]; // check trang thai thanh toan
+
+            if (transactionStatus == "00") // 00 la thanh toan thanh cong
+            {
+                string orderInfoString = Request.Query["vnp_OrderInfo"];
+
+                var orderInfo = System.Text.Json.JsonSerializer.Deserialize<PaymentInformationModel>(orderInfoString);
+
+                var hd = new HoaDon
+                {
+                    Tinh = orderInfo.Tinh,
+                    Huyen = orderInfo.Huyen,
+                    Xa = orderInfo.Xa,
+                    DiaChi = orderInfo.DiaChi,
+                    GhiChu = orderInfo.GhiChu,
+                    Id_User = orderInfo.Id_User,
+                    TongTien = orderInfo.TongTien,
+                    TrangThai = 0,
+                    LoaiThanhToan = PaymentType.Vnpay,
+                    IsPayed = true
+                };
+
+                var re = await _hoaDonsService.TaoHoaDon(hd);
+
+                if (re.Status)
+                {
+                    return Redirect("http://localhost:4202/checkout?status=success");
+                }
+                else
+                {
+                    return Redirect("http://localhost:4202/checkout?status=failure");
+                }
+            }
+            else
+            {
+                return Redirect("http://localhost:4202/checkout?status=failure");
+            }
+        }
+
+
+
+
     }
 }

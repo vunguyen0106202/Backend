@@ -111,12 +111,16 @@ namespace API.Controllers
         public async Task<ActionResult<int>> GetSoLuongTonTrongKho()
         {
             var query = from s in _context.SanPhamBienThes
-                        select new SanPhamBienThe
+                        join sp in _context.SanPhams
+                        on s.Id_SanPham equals sp.Id
+                        select new SanPhamTonKho
                         {
-                          SoLuongTon = s.SoLuongTon,
+                            Ten = sp.Ten,
+                            SoLuongTon = s.SoLuongTon,
                         };
-            var slt = await query.FirstOrDefaultAsync();
-            return slt.SoLuongTon;
+            var slt = await query.ToListAsync();
+
+            return Ok(slt);
         }
        //Tong so luong ban ra trong nam
        [HttpGet("Soluongsanphambanratrongnam")]
@@ -125,7 +129,7 @@ namespace API.Controllers
             int year=DateTime.Now.Year;
             try
             {
-                var query = from h in _context.HoaDons.Where(x => x.NgayTao.Year == year)
+                var query = from h in _context.HoaDons.Where(x => x.NgayTao.Year == 2024)
                             join c in _context.ChiTietHoaDons
                             on h.Id equals c.Id_HoaDon
                             select new SoLuongBanRaTrongNam()

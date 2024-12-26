@@ -23,6 +23,7 @@ using API.Helper.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Collections.Generic;
 using AutoMapper;
+using API.Services;
 
 namespace API
 {
@@ -113,6 +114,8 @@ namespace API
                 });
             });
 
+            services.AddHttpContextAccessor();
+
             services.AddControllers().AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
@@ -125,7 +128,7 @@ namespace API
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
-                .WithOrigins("http://localhost:4200", "http://localhost:4300", "http://localhost:4202");
+                .WithOrigins("http://localhost:4200", "http://localhost:4300", "http://localhost:4202", "https://www.gstatic.com");
             }));
 
             services.AddSignalR();
@@ -143,12 +146,15 @@ namespace API
             //services.AddSingleton<IJwtFactory, JwtFactory>();
             services.AddScoped<IDataConnector, DataConnector>();
 
+            services.AddScoped<IVnPayService, VnPayService>();
+            services.AddScoped<IHoaDonsService, HoaDonsService>();
+            services.Configure<SmtpSettings>(Configuration.GetSection("SmtpSettings"));//stmp cofig
             services.AddAuthorization(options =>
             {
                 options.AddPolicy("ApiUser", policy => policy.RequireClaim(Constants.Strings.JwtClaimIdentifiers.Rol, Constants.Strings.JwtClaims.ApiAccess));
             });
 
-            //services.AddWkhtmltopdf("wkhtmltopdf");
+            services.AddWkhtmltopdf("wkhtmltopdf");
 
             services.AddIdentity<AppUser, IdentityRole>(o =>
             {
@@ -167,6 +173,11 @@ namespace API
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
+            //app.Use(async (context, next) =>
+            //{
+            //    context.Response.Headers.Add("Content-Security-Policy", "script-src 'self' https://www.gstatic.com;");
+            //    await next();
+            //});
             app.UseMiddleware<ExceptionMiddleware>();
             app.UseStaticFiles();
 

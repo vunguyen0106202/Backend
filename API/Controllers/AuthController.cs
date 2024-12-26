@@ -15,6 +15,7 @@ using API.Models;
 using API.Dtos;
 using API.Helper.Factory;
 using Microsoft.AspNetCore.Authorization;
+using API.Helper.Result;
 namespace API.Controllers
 {
     [Route("api/[controller]")]
@@ -58,6 +59,23 @@ namespace API.Controllers
             await _context.JobSeekers.AddAsync(new JobSeeker { Id_Identity = userIdentity.Id, Location = model.Location });
             await _context.SaveChangesAsync();
             return Ok();
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPassword model)
+        {
+            if (model.NewPass != model.ConfirmPass)
+                return Ok(Result<object>.Success(null, 0, "password ko hop le"));
+
+            var user = await _userManager.FindByNameAsync(model.UserName);
+
+            if (user == null)
+                return Ok(Result<object>.Success(null, 0, "khong ton tai user!!!"));
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            var resetPassResult = await _userManager.ResetPasswordAsync(user, token, model.NewPass);
+
+            return Ok(Result<object>.Success(null, 0, "cap nhat mat khau thanh cong!!!"));
         }
         [HttpPost("getDiaChi")]
         public async Task<IActionResult> GetDiaChi([FromBody] JObject json)
@@ -145,12 +163,26 @@ namespace API.Controllers
             }
             return await Task.FromResult<ClaimsIdentity>(null);
         }
-        [HttpGet("AuthHistory")]
-        public async Task<ActionResult<AppUser>> GetAuthHistory()
+        [HttpPost("AuthHistory")]
+        public async Task<ActionResult<AppUser>> SuaThongTin([FromBody] ChangeInmomation model) 
+        {
+            //var model = JsonConvert.DeserializeObject<RegistrationViewModel>(json.GetValue("data").ToString());
+            AppUser appUser = new AppUser();
+            appUser = await _context.AppUsers.FindAsync(model.IdUser);
+            appUser.FirstName = model.FirstName;
+            appUser.LastName = model.LastName;
+            appUser.SDT = model.SDT;
+            appUser.DiaChi = model.DiaChi;
+            await _context.SaveChangesAsync();
+            return Ok(Result<object>.Success(appUser, 1, "Cập nhật thành công !!!"));
+        }
+        [HttpGet("AuthHistory/{iduser}")]
+        public async Task<ActionResult<AppUser>> GetAuthHistory(string iduser)
         {
             AppUser appUser = new AppUser();
-            appUser = await _context.AppUsers.FindAsync(id);
+            appUser = await _context.AppUsers.FindAsync(iduser);
             return appUser;
         }
+        
     }
 }

@@ -12,6 +12,8 @@ using API.Helper.Result;
 using Google.Apis.Auth;
 using API.Helper.Factory;
 using Google.Apis.Auth.OAuth2.Responses;
+using API.Dtos.ModelRequest;
+using System;
 
 
 namespace API.Controllers
@@ -66,19 +68,21 @@ namespace API.Controllers
                 Email = model.Email,
                 FirstName = model.FirstName,
                 LastName = model.LastName,
-                SDT = model.Phone
+                SDT = model.Phone,
+                Quyen=model.Roles,
+
             };
             var result = await _userManager.CreateAsync(user, model.Password);
-            if (result.Succeeded)
-            {
-                if (model.Roles != null)
-                {
-                    foreach (var r in model.Roles)
-                    {
-                        await _userManager.AddToRoleAsync(user, r);
-                    }
-                }
-            }
+            //if (result.Succeeded)
+            //{
+            //    if (model.Roles != null)
+            //    {
+            //        foreach (var r in model.Roles)
+            //        {
+            //            await _userManager.AddToRoleAsync(user, r);
+            //        }
+            //    }
+            //}
             if (!result.Succeeded) return new BadRequestObjectResult(Errors.AddErrorsToModelState(result, ModelState));
             return Ok(Result<object>.Success(user));
         }
@@ -129,27 +133,32 @@ namespace API.Controllers
 
             return Ok(Result<object>.Success(existingUser));
         }
-
-        [HttpPut("updateprofile/{id}")]
+        [HttpGet("profile/{id}")]
+        public async Task<IActionResult> get(string id)
+        {
+            var user = new AppUser();
+            user = await _context.AppUsers.FindAsync(id);
+            return Ok(user);
+        }
+        [HttpPost("updateprofile/{id}")]
         public async Task<IActionResult> Put([FromForm] UpdateUserProfile model, string id)
         {
-            var user = await _context.AppUsers.FindAsync(id);
+            AppUser user = new AppUser();
+            user = await _context.AppUsers.FindAsync(id);
             user.SDT = model.SDT;
             user.DiaChi = model.DiaChi;
             user.FirstName = model.FirstName;
             user.LastName = model.LastName;
-            user.PasswordHash = model.Password;
-            _context.AppUsers.Update(user);
             await _context.SaveChangesAsync();
             return Ok();
         }
-
+        static string id;
         [HttpPost("login-google")]
-        public async Task<IActionResult> LoginWithGoogle([FromBody] string tokenId)
+        public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginRequest request)
         {
             try
             {
-                var payload = await GoogleJsonWebSignature.ValidateAsync(tokenId);
+                var payload = await GoogleJsonWebSignature.ValidateAsync(request.TokenId);
                 var user = await _userManager.FindByEmailAsync(payload.Email);
                 if (user == null)
                 {
@@ -159,6 +168,7 @@ namespace API.Controllers
                         Email = payload.Email,
                         FirstName = payload.GivenName,
                         LastName = payload.FamilyName,
+                        Quyen= "Customer",
                         //ImagePath = payload.Picture,
                     };
 
@@ -173,7 +183,17 @@ namespace API.Controllers
                     user = newUser;
                 }
                 var token = _jwtFactory.GenerateJwtToken(user);
-
+                var userToVerify = await _userManager.FindByNameAsync(payload.Email);
+                if (userToVerify != null)
+                {
+                    // check the credentials  
+                        AuthHistory auth = new AuthHistory();
+                        auth.IdentityId = userToVerify.Id;
+                        auth.Datetime = DateTime.Now;
+                        _context.AuthHistories.Add(auth);
+                        await _context.SaveChangesAsync();
+                        id = userToVerify.Id;
+                }
                 return Ok(new
                 {
                     token,
@@ -199,7 +219,10 @@ namespace API.Controllers
 
             var tokenId = tokenResponse.IdToken;
 
-            return await LoginWithGoogle(tokenId);
+            var requestToken = new GoogleLoginRequest();
+            requestToken.TokenId = tokenId;
+
+            return await LoginWithGoogle(requestToken);
         }
     }
 }

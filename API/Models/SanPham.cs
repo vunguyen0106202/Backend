@@ -21,7 +21,7 @@ namespace API.Models
         public decimal? KhuyenMai { get; set; }
         public string Tag { get; set; }
         public string ImageRepresent { get; set; }
-        public string? HuongDan { get; set; }
+        public string HuongDan { get; set; }
         public string? ThanhPhan { get; set; }  
         public System.DateTime? NgayCapNhat { get; set; }
         public System.DateTime? NgayTao { get; set; }

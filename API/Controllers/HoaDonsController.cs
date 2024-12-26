@@ -20,6 +20,7 @@ using API.Helper.SignalR;
 using API.Helper.Result;
 using System.Reflection;
 using API.Helper;
+using API.Services;
 namespace API.Controllers
 {
     [Route("api/[controller]")]
@@ -29,11 +30,13 @@ namespace API.Controllers
         private readonly DPContext _context;
         private readonly IHubContext<BroadcastHub, IHubClient> _hubContext;
         private readonly IDataConnector _connector;
-        public HoaDonsController(DPContext context, IHubContext<BroadcastHub, IHubClient> hubContext, IDataConnector connector)
+        private readonly IHoaDonsService _hdService;
+        public HoaDonsController(DPContext context, IHubContext<BroadcastHub, IHubClient> hubContext, IDataConnector connector, IHoaDonsService hdService)
         {
-            this._context = context;
-            this._hubContext = hubContext;
+            _context = context;
+            _hubContext = hubContext;
             _connector = connector;
+            _hdService = hdService;
         }
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HoaDonUser>>> AllHoaDons(string key, int offset, int limit = 20, string sortField = "", string sortOrder = "asc")
@@ -51,6 +54,8 @@ namespace API.Controllers
                           NgayTao = hd.NgayTao,
                           TrangThai = hd.TrangThai,
                           TongTien = hd.TongTien,
+                          DaLayTien = hd.IsPayed==true ? "rồi" : "chưa",
+                          LoaiThanhToan=hd.LoaiThanhToan==2 ? "Thanh toán online" : "Tiền mặt",
                           FullName = us.FirstName + " " + us.LastName,
                       })
                 .Where(hd => string.IsNullOrEmpty(key) || hd.MaHoaDon.Contains(key) || hd.FullName.Contains(key));
@@ -200,8 +205,12 @@ namespace API.Controllers
             return Ok(Result<object>.Success(maGiamGia, 1, "Cập nhật thành công !!!"));
         }
         [HttpPost]
-        public async Task<ActionResult<HoaDon>> TaoHoaDon(HoaDon hd)
+        public async Task<IActionResult> TaoHoaDon(UploadOrder hd)
         {
+            if (hd == null || hd.SpOrder == null || !hd.SpOrder.Any())
+            {
+                return BadRequest("Dữ liệu không hợp lệ.");
+            }
             HoaDon hoaDon = new HoaDon()
             {
                 MaHoaDon = "HDBH",
@@ -218,9 +227,12 @@ namespace API.Controllers
 
             hoaDon.IsActive = true;
             hoaDon.IsDelete = false;
+            hoaDon.LoaiThanhToan = hd.LoaiThanhToan ?? hoaDon.LoaiThanhToan;
+            hoaDon.IsPayed = hd.IsPayed ?? false;
             _context.HoaDons.Add(hoaDon);
             await _context.SaveChangesAsync();
             hoaDon.MaHoaDon = "HDBH" + hoaDon.Id;
+
             NotificationCheckout notification = new NotificationCheckout()
             {
                 ThongBaoMaDonHang = hoaDon.Id,
@@ -230,24 +242,28 @@ namespace API.Controllers
             List<ChiTietHoaDon> ListCTHD = new List<ChiTietHoaDon>();
             for (int i = 0; i < cart.Count; i++)
             {
-                var thisSanPhamBienThe =  _context.SanPhamBienThes.Find(cart[i].Id_SanPhamBienThe);
-                ChiTietHoaDon cthd = new ChiTietHoaDon();
-                cthd.Id_SanPham = cart[i].SanPhamId;
-                cthd.Id_SanPhamBienThe = cart[i].Id_SanPhamBienThe;
-                cthd.Id_HoaDon = hoaDon.Id;
-                cthd.GiaBan = cart[i].Gia;
-                cthd.Soluong = cart[i].SoLuong;
-                cthd.ThanhTien = cart[i].Gia * cart[i].SoLuong;
-                cthd.Size = cart[i].Size;
-                cthd.Mau = cart[i].Mau;
-                thisSanPhamBienThe.SoLuongTon = thisSanPhamBienThe.SoLuongTon - cart[i].SoLuong;
-                _context.SanPhamBienThes.Update(thisSanPhamBienThe);
-                _context.ChiTietHoaDons.Add(cthd);
-                _context.Carts.Remove(cart[i]);
-                await _context.SaveChangesAsync();
+                if ( hd.SpOrder.Contains(cart[i].CartID))
+                {
+                    var thisSanPhamBienThe = _context.SanPhamBienThes.Find(cart[i].Id_SanPhamBienThe);
+                    ChiTietHoaDon cthd = new ChiTietHoaDon();
+                    cthd.Id_SanPham = cart[i].SanPhamId;
+                    cthd.Id_SanPhamBienThe = cart[i].Id_SanPhamBienThe;
+                    cthd.Id_HoaDon = hoaDon.Id;
+                    cthd.GiaBan = cart[i].Gia;
+                    cthd.Soluong = cart[i].SoLuong;
+                    cthd.ThanhTien = cart[i].Gia * cart[i].SoLuong;
+                    cthd.Size = cart[i].Size;
+                    cthd.Mau = cart[i].Mau;
+                    thisSanPhamBienThe.SoLuongTon = thisSanPhamBienThe.SoLuongTon - cart[i].SoLuong;
+
+                    _context.SanPhamBienThes.Update(thisSanPhamBienThe);
+                    _context.ChiTietHoaDons.Add(cthd);
+                    _context.Carts.Remove(cart[i]);
+                    await _context.SaveChangesAsync();
+                }
             };
             await _hubContext.Clients.All.BroadcastMessage();
-            return Json(1);
+            return Ok(Result<HoaDon>.Success(hoaDon));
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHoaDons(int id)

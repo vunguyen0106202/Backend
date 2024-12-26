@@ -255,6 +255,36 @@ namespace API.Controllers
 
             return Ok(Result<IEnumerable<SanPhamLoaiThuongHieu>>.Success(results, totalCount, ""));
         }
+        [HttpGet("GetCompleteProduct")]
+        public async Task<ActionResult> GetCompleteProduct(string key, int offset, int limit = 20)
+        {
+            var query = _context.SanPhams
+                .Where(s => s.IsActive == true && s.IsDelete == false && s.TrangThaiHoatDong == true)
+                .Select(s => new
+                {
+                    Id = s.Id,
+                    Ten = s.Ten,
+                    GiaBan = s.GiaBan,
+                    GioiTinh = s.GioiTinh,
+                    TenLoai = _context.Loais.Where(d => d.Id == s.Id_Loai).Select(d => d.Ten).FirstOrDefault(),
+                    TenNhanHieu = _context.NhanHieus.Where(d => d.Id == s.Id_NhanHieu).Select(d => d.Ten).FirstOrDefault(),
+                    ImageRepresent = s.ImageRepresent,
+                    Image = _context.ImageSanPhams.Where(q => q.IdSanPham == s.Id).Select(q => q.ImageName).FirstOrDefault(),
+
+                })
+                .Where(s => string.IsNullOrEmpty(key) || s.Ten.Contains(key));
+
+            query = query.OrderBy(s => s.Ten).Skip(offset).Take(limit);
+
+            var totalCount = await _context.SanPhams
+                .Where(s => s.IsActive == true && s.IsDelete == false)
+                .Where(s => string.IsNullOrEmpty(key) || s.Ten.Contains(key))
+                .CountAsync();
+
+            var results = await query.ToListAsync();
+
+            return Ok(Result<object>.Success(results, totalCount, ""));
+        }
 
         [HttpGet("GetAutoCompleteProduct")]
         public async Task<ActionResult> GetAutoCompleteProduct(string key, int offset, int limit = 20)
@@ -463,11 +493,13 @@ namespace API.Controllers
                     var imagesToDelete = _context.ImageSanPhams
                         .Where(img => img.IdSanPham == sanpham.Id && upload.DeletedImages.Contains(img.ImageName))
                         .ToList();
-                    _context.ImageSanPhams.RemoveRange(imagesToDelete);
-                    foreach (var img in imagesToDelete)
-                    {
-                        FileHelper.DeleteFileOnTypeAndNameAsync("product", img.ImageName);
-                    }
+                        _context.ImageSanPhams.RemoveRange(imagesToDelete);
+
+                        foreach (var img in imagesToDelete)
+                        {
+                            // Sử dụng await để đảm bảo xóa file bất đồng bộ hoạt động đúng
+                            FileHelper.DeleteFileOnTypeAndNameAsync("product", img.ImageName);
+                        }
                 }
 
                 _context.SanPhams.Update(sanpham);
@@ -770,6 +802,7 @@ namespace API.Controllers
         [HttpGet("searchtheoloai")]
         public async Task<ActionResult<IEnumerable<SanPhamLoaiThuongHieu>>> searchtheoloai(int i)
         {
+            var idloai = _context.Loais.Where(l => l.Ten == "Váy").FirstOrDefault();
             var kb = _context.SanPhams.Where(d => d.IsActive == true && d.IsDelete == false && d.Id_Loai==i).Select(
                    s => new SanPhamLoaiThuongHieu()
                    {
@@ -791,6 +824,35 @@ namespace API.Controllers
                        Image = _context.ImageSanPhams.Where(q => q.IdSanPham == s.Id).Select(q => q.ImageName).FirstOrDefault(),
                    }).Take(20);
             var r= await kb.ToListAsync();
+            return Ok(Result<IEnumerable<SanPhamLoaiThuongHieu>>.Success(r, 1, ""));
+        }
+        [HttpPost("searchtheoloai")]
+        public async Task<IActionResult> getListLoai([FromBody] JObject json)
+        {
+            var loai = json.GetValue("loai").ToString();
+            var idloai = _context.Loais.Where(l => l.Ten == loai).FirstOrDefault();
+            int idl = idloai.Id;
+            var kb = _context.SanPhams.Where(d => d.IsActive == true && d.IsDelete == false && d.Id_Loai == idl).Select(
+                   s => new SanPhamLoaiThuongHieu()
+                   {
+                       Id = s.Id,
+                       Ten = s.Ten,
+                       GiaBan = s.GiaBan,
+                       Tag = s.Tag,
+                       KhuyenMai = s.KhuyenMai,
+                       MoTa = s.MoTa,
+                       HuongDan = s.HuongDan,
+                       GioiTinh = s.GioiTinh,
+                       ThanhPhan = s.ThanhPhan,
+                       TrangThaiSanPham = s.TrangThaiSanPham,
+                       TrangThaiHoatDong = s.TrangThaiHoatDong,
+                       Id_Loai = s.Id_Loai,
+                       Id_NhanHieu = s.Id_NhanHieu,
+                       TenLoai = _context.Loais.Where(d => d.Id == s.Id_Loai).Select(d => d.Ten).FirstOrDefault(),
+                       TenNhanHieu = _context.NhanHieus.Where(d => d.Id == s.Id_NhanHieu).Select(d => d.Ten).FirstOrDefault(),
+                       Image = _context.ImageSanPhams.Where(q => q.IdSanPham == s.Id).Select(q => q.ImageName).FirstOrDefault(),
+                   }).Take(20);
+            var r = await kb.ToListAsync();
             return Ok(Result<IEnumerable<SanPhamLoaiThuongHieu>>.Success(r, 1, ""));
         }
         [HttpPost("searchtheomau")]

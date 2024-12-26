@@ -26,4 +26,13 @@ namespace API.Helpers
         public static int BannerRight = 4;
         public static int BannerFlashSale = 5;
     }
+
+    public static class PaymentType
+    {
+        public static int COD = 1;
+        public static int Vnpay = 2;
+        public static int Momo = 3;
+        public static int Paypal = 4;
+    }
+
 }

@@ -35,7 +35,8 @@ namespace API.Controllers
         [HttpGet("topthongkethang")]
         public async Task<ActionResult<IEnumerable<ThangRevenue>>> GetDoanhSoThangasync()
         {
-            var sells = await _context.HoaDons.Where(s => s.TrangThai == 2)
+            var year = DateTime.Now.Year;
+            var sells = await _context.HoaDons.Where(s => s.TrangThai == 2 && s.NgayTao.Date.Year==year)
                 .GroupBy(a => a.NgayTao.Date.Month)
                 .Select(a => new ThangRevenue { Revenues = a.Sum(b => b.TongTien), Month = a.Key.ToString()  })
                 .OrderBy(a => a.Revenues)
@@ -45,9 +46,10 @@ namespace API.Controllers
         [HttpPost("topthongkengaytheothang")]
         public async Task<ActionResult<IEnumerable<NgayRevenue>>> GetDoanhSoNgayTheoThangasync([FromForm]string month)
         {
-            var sells = await _context.HoaDons.Where(s=>s.TrangThai==2)
+            var year = DateTime.Now.Year;
+            var sells = await _context.HoaDons.Where(s=>s.TrangThai==2 && s.NgayTao.Date.Year==year)
                   .GroupBy(a => a.NgayTao.Date)
-                  .Select(a => new NgayRevenue { Revenues = a.Sum(b => b.TongTien), Ngay = a.Key.Date })
+                  .Select(a => new NgayRevenue { Revenues = a.Sum(b => b.TongTien), Ngay = a.Key })
                   .OrderBy(a => a.Revenues)
                   .Where(s=>s.Ngay.Month == int.Parse(month))
                   .ToListAsync();
@@ -65,6 +67,12 @@ namespace API.Controllers
         {
            return await _connector.Top10SanPhamLoiNhats();
         }
+        [HttpGet("toptonkho")]
+        public async Task<ActionResult<IEnumerable<SanPhamTonKho>>> Top10SanPhamTonNhat()
+        {
+            return await _connector.Top10SanPhamTonNhats();
+        }
+
         //Tong so luong ban ra trong nam
         [HttpGet("topnhanhieubanchaynhattrongnam")]
         public async Task<ActionResult<IEnumerable<NhanHieuBanChayNhatTrongNam>>> GetNhanHieuBanChayNhatTrongNam()

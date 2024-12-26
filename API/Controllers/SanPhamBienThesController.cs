@@ -34,7 +34,7 @@ namespace API.Controllers
                         join m in _context.MauSacs on g.Id_Mau equals m.Id
                         join sp in _context.SanPhams on g.Id_SanPham equals sp.Id
                         join s in _context.Sizes on g.SizeId equals s.Id
-                        where m.IsActive == true && m.IsDelete == false
+                        where g.IsActive == true && g.IsDelete == false
                         select new GiaSanPhamMauSacSanPhamSize
                         {
                             Id_Mau = m.Id,
@@ -95,12 +95,23 @@ namespace API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<SanPhamBienThe>> Get(int id)
         {
-            var giaSanPham = await _context.SanPhamBienThes.FindAsync(id);
-            if (giaSanPham == null)
-            {
-                return NotFound();
-            }
-            return Ok(Result<object>.Success(giaSanPham));
+            var query = from g in _context.SanPhamBienThes
+                        join m in _context.MauSacs on g.Id_Mau equals m.Id
+                        join sp in _context.SanPhams on g.Id_SanPham equals sp.Id
+                        join s in _context.Sizes on g.SizeId equals s.Id
+                        where g.IsActive == true && g.IsDelete == false && g.Id == id
+                        select new GiaSanPhamMauSacSanPhamSize
+                        {
+                            Id_Mau = m.Id,
+                            Id_SanPham = sp.Id,
+                            Id_Size = s.Id,
+                            Id = g.Id,
+                            MaMau = m.MaMau,
+                            TenSanPham = sp.Ten,
+                            TenSize = s.TenSize,
+                            SoLuongTon = g.SoLuongTon,
+                        };
+            return Ok(Result<object>.Success(query,0,"get"));
         }
         // PUT: api/SanPhamBienThes/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -148,10 +159,10 @@ namespace API.Controllers
             if (upload.Id > 0)
             {
                 spbt = await _context.SanPhamBienThes.FindAsync(upload.Id);
-                spbt.Id_Mau = upload.MauId;
-                spbt.Id_SanPham = upload.SanPhamId;
-                spbt.SizeId = upload.SizeId;
-                //spbt.SoLuongTon = upload.SoLuongTon;
+                //spbt.Id_Mau = upload.MauId;
+                //spbt.Id_SanPham = upload.SanPhamId;
+                //spbt.SizeId = upload.SizeId;
+                spbt.SoLuongTon = upload.SoLuongTon;
                 spbt.UpdatedDate = DateTime.Now;
                 //_context.SanPhamBienThes.Update(spbt);
             }
@@ -166,6 +177,8 @@ namespace API.Controllers
                     CreatedDate = DateTime.Now,
                 };
                 _context.SanPhamBienThes.Add(spbt);
+                spbt.IsActive = true;
+                spbt.IsDelete = false;
             }
             await _context.SaveChangesAsync();
             return Ok(Result<SanPhamBienThe>.Success(spbt));

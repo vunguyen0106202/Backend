@@ -17,8 +17,8 @@ namespace API.Dtos
         public string FirstName { get; set; }
         public string DiaChi { get; set; }
         public string SDT { get; set; }
-        public string LastName { get; set; }
         public string Location { get; set; }
+        public string LastName { get; set; }
         public string Quyen { get; set; }
     }
 
@@ -31,7 +31,8 @@ namespace API.Dtos
         [Required]
         public string LastName { get; set; }
         public string Phone { get; set; }
-        public List<string> Roles { get; set; }
+        [Required]
+        public string Roles { get; set; }
 
         [Required]
         [EmailAddress]

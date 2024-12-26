@@ -149,7 +149,7 @@ namespace API.Controllers
         [HttpPost("SanPhamNhaCungCap")]
         public async Task<ActionResult<IEnumerable<SanPham>>> GetSanPhamNhaCungCaps(NhaCungCap ncc)
         {
-          return await _context.SanPhams.Where(s => s.Id_NhaCungCap == ncc.Id).ToListAsync();
+          return await _context.SanPhams.Where(s => s.Id_NhaCungCap == ncc.Id&& s.IsActive == true && s.IsDelete == false).ToListAsync();
         }
         [HttpPost("NhaCungCap")]
         public async Task<ActionResult<NhaCungCap>> GetNhaCungCaps(NhaCungCap ncc)
@@ -160,7 +160,7 @@ namespace API.Controllers
         public async Task<ActionResult<IEnumerable<SanPhamBienTheMauSizeLoai>>> GetTenSanPhamBienThe(SanPham sps)
         {
             var kb = from spbt in _context.SanPhamBienThes
-                     join sp in _context.SanPhams.Where(s => s.Id==sps.Id)
+                     join sp in _context.SanPhams.Where(s => s.Id==sps.Id  )
                      on spbt.Id_SanPham equals sp.Id
                      join l in _context.Loais
                      on sp.Id_Loai equals l.Id

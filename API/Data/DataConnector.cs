@@ -12,6 +12,7 @@ namespace API.Data
     {
         Task<List<TenSPSoLanXuatHienTrongDonHang>> GetSoLanXuatHienTrongDonHang();
         Task<List<TenSanPhamDoanhSo>> Top10SanPhamLoiNhats();
+        Task<List<SanPhamTonKho>>Top10SanPhamTonNhats();
         Task<List<NhanHieuBanChayNhatTrongNam>> GetNhanHieuBanChayNhatTrongNam();
         Task<List<DataSetBanRaTonKho>> DataDataSetBanRaTonKho();
         Task<List<NhaCungCapSoLuong>> GetNhaCungCapSoLuongs();
@@ -44,7 +45,7 @@ namespace API.Data
                         on SanPhamBienThes.Id = ChiTietHoaDons.Id_SanPhamBienThe
                         inner join HoaDons
 					    on ChiTietHoaDons.Id_HoaDon = HoaDons.Id
-                         where HoaDons.TrangThai = 2
+                         where HoaDons.TrangThai = 2 
                         group by SanPhams.Ten+' '+Sizes.TenSize+' '+MauSacs.MaMau ,SanPhamBienThes.SoLuongTon
                         order by sum(ChiTietHoaDons.Soluong) desc
                        ";
@@ -67,6 +68,38 @@ namespace API.Data
             }
             await conn.CloseAsync();
             return solanxuathiens.ToList();
+        }
+        public async Task<List<SanPhamTonKho>> Top10SanPhamTonNhats()
+        {
+            var sql = @"select top(10) SanPhams.Ten+' '+Sizes.TenSize+' '+MauSacs.MaMau as 'Ten',SanPhamBienThes.SoLuongTon
+                        from SanPhams
+                        inner join SanPhamBienThes
+                        on SanPhams.Id = SanPhamBienThes.Id_SanPham
+                        inner join MauSacs
+                        on SanPhamBienThes.Id_Mau = MauSacs.Id
+                        inner join Sizes
+                        on SanPhamBienThes.SizeId = Sizes.Id
+                        order by SanPhamBienThes.SoLuongTon desc
+                       ";
+            var soluongton = new List<SanPhamTonKho>();
+            SqlConnection conn = new SqlConnection(_context.Database.GetConnectionString());
+            await conn.OpenAsync();
+            SqlCommand cmd = new SqlCommand(sql, conn);
+            SqlDataReader reader;
+            reader = await cmd.ExecuteReaderAsync();
+            if (reader.HasRows)
+            {
+                while (await reader.ReadAsync())
+                {
+                    soluongton.Add(new SanPhamTonKho()
+                    {
+                        Ten = (string)reader["Ten"],
+                        SoLuongTon = (int)reader["SoLuongTon"],
+                    });
+                }
+            }
+            await conn.CloseAsync();
+            return soluongton.ToList();
         }
         public async Task<List<TenSanPhamDoanhSo>> Top10SanPhamLoiNhats()
         {
@@ -105,18 +138,18 @@ namespace API.Data
         }
         public async Task<List<NhanHieuBanChayNhatTrongNam>> GetNhanHieuBanChayNhatTrongNam()
         {
-            string sql = @"select top(10) NhanHieus.Ten,sum(ChiTietHoaDons.Soluong) as'soluong'
-                            from NhanHieus
-                            inner join SanPhams
-                            on NhanHieus.Id =SanPhams.Id_NhanHieu
-                            inner join SanPhamBienThes
-                            on SanPhamBienThes.Id_SanPham = SanPhams.Id
-                            inner join ChiTietHoaDons 
-                            on ChiTietHoaDons.Id_SanPhamBienThe = SanPhamBienThes.Id
-                            inner join HoaDons
-                            on HoaDons.Id = ChiTietHoaDons.Id_HoaDon
-                            where DATEPART( YYYY,HoaDons.NgayTao)='2021' and HoaDons.TrangThai = 2
-                            group by NhanHieus.Ten
+            string sql = @"select top(5) NhanHieus.Ten, sum(ChiTietHoaDons.Soluong) as 'soluong'
+                                from NhanHieus
+                                inner join SanPhams
+                                    on NhanHieus.Id = SanPhams.Id_NhanHieu
+                                inner join SanPhamBienThes
+                                    on SanPhamBienThes.Id_SanPham = SanPhams.Id
+                                inner join ChiTietHoaDons 
+                                    on ChiTietHoaDons.Id_SanPhamBienThe = SanPhamBienThes.Id
+                                inner join HoaDons
+                                    on HoaDons.Id = ChiTietHoaDons.Id_HoaDon
+                                where DATEPART(YYYY, HoaDons.NgayTao) = YEAR(GETDATE()) and HoaDons.TrangThai = 2
+                                group by NhanHieus.Ten
                         ";
             SqlConnection cnn;
             cnn = new SqlConnection(_context.Database.GetConnectionString());
@@ -146,15 +179,15 @@ namespace API.Data
             int selectedYear = year ?? DateTime.Now.Year;
 
             string sql = @"
-        select top(10) NhanHieus.Ten, sum(ChiTietHoaDons.Soluong) as 'soluong'
-        from NhanHieus
-        inner join SanPhams on NhanHieus.Id = SanPhams.Id_NhanHieu
-        inner join SanPhamBienThes on SanPhamBienThes.Id_SanPham = SanPhams.Id
-        inner join ChiTietHoaDons on ChiTietHoaDons.Id_SanPhamBienThe = SanPhamBienThes.Id
-        inner join HoaDons on HoaDons.Id = ChiTietHoaDons.Id_HoaDon
-        where DATEPART(YYYY, HoaDons.NgayTao) = @Year and HoaDons.TrangThai = 2
-        group by NhanHieus.Ten
-    ";
+                select top(10) NhanHieus.Ten, sum(ChiTietHoaDons.Soluong) as 'soluong'
+                from NhanHieus
+                inner join SanPhams on NhanHieus.Id = SanPhams.Id_NhanHieu
+                inner join SanPhamBienThes on SanPhamBienThes.Id_SanPham = SanPhams.Id
+                inner join ChiTietHoaDons on ChiTietHoaDons.Id_SanPhamBienThe = SanPhamBienThes.Id
+                inner join HoaDons on HoaDons.Id = ChiTietHoaDons.Id_HoaDon
+                where DATEPART(YYYY, HoaDons.NgayTao) = @Year and HoaDons.TrangThai = 2
+                group by NhanHieus.Ten
+            ";
 
             using SqlConnection cnn = new SqlConnection(_context.Database.GetConnectionString());
             using SqlCommand cmd = new SqlCommand(sql, cnn);
@@ -184,21 +217,17 @@ namespace API.Data
         public async Task<List<DataSetBanRaTonKho>> DataDataSetBanRaTonKho()
         {
             string sql = @"
-                        select  SanPhams.Ten+' '+Sizes.TenSize+' '+MauSacs.MaMau as 'Ten', cast(sum(SanPhams.GiaNhap*SanPhamBienThes.SoLuongTon) as decimal(18,2)) as'GiaTriTonKho' ,sum(ChiTietHoaDons.ThanhTien) as'GiaTriBanRa'               
-                    from SanPhams
-                    inner join SanPhamBienThes
-                    on SanPhams.Id = SanPhamBienThes.Id_SanPham
-                    inner join MauSacs
-                    on SanPhamBienThes.Id_Mau = MauSacs.Id
-                    inner join Sizes
-                    on SanPhamBienThes.SizeId = Sizes.Id
-                    inner join ChiTietHoaDons
-                    on SanPhamBienThes.Id_SanPham = ChiTietHoaDons.Id
-					inner join HoaDons
-					on ChiTietHoaDons.Id_HoaDon = HoaDons.Id
-					  where HoaDons.TrangThai = 2
-                    group by(SanPhams.Ten+' '+Sizes.TenSize+' '+MauSacs.MaMau)
-                    order by sum(ChiTietHoaDons.ThanhTien) desc
+                        select top(16) SanPhams.Ten+' '+ChiTietHoaDons.Mau+' '+ChiTietHoaDons.Size as 'Ten',cast(sum(SanPhams.GiaNhap*SanPhamBienThes.SoLuongTon) as decimal(18,2)) as'GiaTriTonKho' ,sum(ChiTietHoaDons.ThanhTien) as'GiaTriBanRa'
+                        from ChiTietHoaDons
+                        inner join SanPhamBienThes
+                        on ChiTietHoaDons.Id_SanPhamBienThe = SanPhamBienThes.Id
+                        inner join SanPhams
+                        on ChiTietHoaDons.Id_SanPham = SanPhams.Id
+                        inner join HoaDons
+                        on ChiTietHoaDons.Id_HoaDon = HoaDons.Id
+                        where HoaDons.TrangThai = 2
+                        group by(SanPhams.Ten+' '+ChiTietHoaDons.Mau+' '+ChiTietHoaDons.Size)
+                        order by sum(ChiTietHoaDons.ThanhTien) desc;
                         ";
             SqlConnection cnn;
             cnn = new SqlConnection(_context.Database.GetConnectionString());
@@ -226,17 +255,17 @@ namespace API.Data
         public async Task<List<NhaCungCapSoLuong>> GetNhaCungCapSoLuongs()
         {
             string sql = @"	select NhaCungCaps.Ten,sum(ChiTietPhieuNhapHangs.SoluongNhap) as 'So luong da nhap'
-	from NhaCungCaps
-	inner join PhieuNhapHangs
-	on NhaCungCaps.Id = PhieuNhapHangs.Id_NhaCungCap
-	inner join ChiTietPhieuNhapHangs
-	on NhaCungCaps.Id = ChiTietPhieuNhapHangs.Id_PhieuNhapHang
-	inner join SanPhamBienThes
-	on SanPhamBienThes.Id = ChiTietPhieuNhapHangs.Id_PhieuNhapHang
-	inner join SanPhams
-	on SanPhams.Id = SanPhamBienThes.Id_SanPham
-	group by NhaCungCaps.Ten ,SanPhams.GiaNhap
-	order by sum(ChiTietPhieuNhapHangs.SoluongNhap) desc
+	                        from NhaCungCaps
+	                        inner join PhieuNhapHangs
+	                        on NhaCungCaps.Id = PhieuNhapHangs.Id_NhaCungCap
+	                        inner join ChiTietPhieuNhapHangs
+	                        on NhaCungCaps.Id = ChiTietPhieuNhapHangs.Id_PhieuNhapHang
+	                        inner join SanPhamBienThes
+	                        on SanPhamBienThes.Id = ChiTietPhieuNhapHangs.Id_PhieuNhapHang
+	                        inner join SanPhams
+	                        on SanPhams.Id = SanPhamBienThes.Id_SanPham
+	                        group by NhaCungCaps.Ten ,SanPhams.GiaNhap
+	                        order by sum(ChiTietPhieuNhapHangs.SoluongNhap) desc
 ";
             SqlConnection cnn;
             cnn = new SqlConnection(_context.Database.GetConnectionString());
@@ -294,7 +323,7 @@ namespace API.Data
             int year=DateTime.Now.Year;
             string sql = @"select DATEPART( YYYY,HoaDons.NgayTao) as 'Nam', sum(HoaDons.TongTien) as'Tong tien trong nam'
                             from HoaDons
-                            where DATEPART( YYYY,HoaDons.NgayTao)='2021' and HoaDons.TrangThai = 2
+                            where DATEPART( YYYY,HoaDons.NgayTao)=YEAR(GETDATE()) and HoaDons.TrangThai = 2
                             group by DATEPART( YYYY,HoaDons.NgayTao)
                         ";
             SqlConnection cnn;
@@ -424,7 +453,8 @@ namespace API.Data
                              TongTien = h.TongTien,
                              GhiChu = h.GhiChu,
                              NgayTao = h.NgayTao,
-                             TrangThai = h.TrangThai
+                             TrangThai = h.TrangThai,
+                             LoaiThanhToan = h.LoaiThanhToan,
                          },
                          chiTietHoaDons = list,
                      };

@@ -75,8 +75,8 @@
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.11.0" />
     <PackageReference Include="Microsoft.OpenApi" Version="1.2.3" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
-    <PackageReference Include="MimeKit" Version="2.12.0" />
     <PackageReference Include="Nancy" Version="2.0.0" />
+    <PackageReference Include="NETCore.MailKit" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.0.0" />
     <PackageReference Include="Syncfusion.XlsIO.Net.Core" Version="19.1.0.64" />

@@ -1,7 +1,7 @@
 ﻿@model MotHoaDon
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Coza Store - Cửa hàng bán quần áo</title>
+    <title>Krik Store - Cửa hàng bán quần áo</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 </head>
 <body>
@@ -17,15 +17,15 @@
                 <table class="table" style="text-align:left">
                     <tr>
                         <th>Tên cửa hàng:</th>
-                        <td>Coza Store</td>
+                        <td>Krik Store</td>
                     </tr>
                     <tr>
                         <th>Địa chỉ:</th>
-                        <td>65/68/175, Ung Văn Khiêm, quận Bình Thạnh, TP-HCM</td>
+                        <td>Krik số 345 Nguyễn Trãi, Thanh Xuân, Hà Nội, Việt Nam</td>
                     </tr>
                     <tr>
                         <th>Email:</th>
-                        <td>cozastore@gmail.com</td>
+                        <td>krikstore@gmail.com</td>
                     </tr>
                     <tr>
                         <th>Thông tin shop:</th>
@@ -50,7 +50,7 @@
                     </tr>
                     <tr>
                         <th>Email:</th>
-                        <td>@Model.DiaChi</td>
+                        <td>@Model.Email</td>
                     </tr>
                 </table>
             </div>
@@ -72,7 +72,28 @@
         </tr>
         <tr>
             <th>Trạng thái:</th>
-            <td>@Model.hoaDon.TrangThai</td>
+            <td>
+                @if (Model.hoaDon.TrangThai == 0)
+                {
+                    <span>Chưa xác nhận</span>
+                }
+                else if (Model.hoaDon.TrangThai == 1)
+                {
+                    <span>Đã xác nhận</span>
+                }
+                else if (Model.hoaDon.TrangThai == 2)
+                {
+                    <span>Hoàn thành</span>
+                }
+                else if (Model.hoaDon.TrangThai == 3)
+                {
+                    <span>Đã hủy</span>
+                }
+                else
+                {
+                    <span>Không xác định</span>
+                }
+            </td>
         </tr>
     </table>
     <br>
@@ -106,11 +127,6 @@
         </tbody>
     </table>
     <div class="row">
-        <div class="col">
-            <h4>Người bán hàng</h4>
-            <img src="https://dvdn247.net/wp-content/uploads/2020/07/22-1.jpg" alt="Alternate Text" style="width:150px" />
-            <h4>Trần Quý Vinh</h4>
-        </div>
         <div class="col">
             <table class="table">
                 <tbody>

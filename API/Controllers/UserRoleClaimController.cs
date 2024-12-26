@@ -21,12 +21,13 @@ namespace API.Controllers
         private readonly DPContext _Db;
         private readonly IHubContext<BroadcastHub, IHubClient> _hubContext;
         private readonly UserManager<AppUser> _userManager;
-
-        public UserRoleClaimController(DPContext context, IHubContext<BroadcastHub, IHubClient> hubContext, UserManager<AppUser> userManager)
+        private readonly RoleManager<IdentityRole> _roleManager;
+        public UserRoleClaimController(DPContext context, IHubContext<BroadcastHub, IHubClient> hubContext, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _Db = context;
             _hubContext = hubContext;
             _userManager = userManager;
+            _roleManager = roleManager;
         }
 
 
@@ -36,8 +37,10 @@ namespace API.Controllers
             var user = await _userManager.FindByIdAsync(idUser);
             if (user == null)
                 return Ok(Result<object>.Success(null, 0, "User không tồn tại."));
-
-            var c = await _Db.UserClaims.Where(c => c.UserId == idUser).ToListAsync();
+            var q = user.Quyen;
+            var role = await _Db.Roles.Where(r=>r.Name==q).FirstOrDefaultAsync();
+            var roleId = role.Id;
+            var c = await _Db.RoleClaims.Where(c => c.RoleId == roleId).ToListAsync();
 
             var userClaimDtos = c.Select(c => new UserClaimDto
             {

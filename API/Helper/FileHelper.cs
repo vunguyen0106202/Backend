@@ -46,6 +46,7 @@ namespace API.Helper
             }
             return null;
         }
+
         public static bool DeleteFileOnTypeAndNameAsync(string type, string name)
         {
             try
@@ -100,7 +101,6 @@ namespace API.Helper
             }
         }
 
-
         public static async Task<string> UploadImageAndReturnFileNameAsync3(UploadSanpham sanpham, UploadBlog blog, string type, IFormFile[] file, int i)
         {
             var uniqueIdentifier = DateTime.Now.Ticks.ToString(); // Hoặc bạn có thể sử dụng Guid.NewGuid().ToString()
@@ -130,7 +130,6 @@ namespace API.Helper
                 return fileName;
             }
         }
-
 
         public static async Task<string> UploadImageAndReturnFileNameAsync2(UploadSanpham sanpham, UploadBlog blog, string type, IFormFile file)
         {
@@ -180,6 +179,7 @@ namespace API.Helper
 
             return fileName;
         }
+
         public static bool DeleteFileOnTypeAndNameAsync1(string type, string name)
         {
             try

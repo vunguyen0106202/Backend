@@ -215,13 +215,13 @@ namespace API.Controllers
                 _context.Blogs.Add(blog);
             }
 
-            Notification notification = new Notification()
-            {
-                TenSanPham = upload.TieuDe,
-                TranType = upload.Id != 0 ? "Edit" : "Add"
-            };
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
+            //Notification notification = new Notification()
+            //{
+            //    TenSanPham = upload.TieuDe,
+            //    TranType = upload.Id != 0 ? "Edit" : "Add"
+            //};
+            //_context.Notifications.Add(notification);
+            //await _context.SaveChangesAsync();
 
             if (upload.files != null)
             {
